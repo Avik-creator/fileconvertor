@@ -3,11 +3,11 @@ export type Action = {
     filename: string;
     size: number;
     from: string;
-    to: String;
+    to: string;
     type: string;
     converting?: boolean;
     converted?: boolean;
     error?: string;
     url?: string;
-    output?: File;
+    output?: string;
 }

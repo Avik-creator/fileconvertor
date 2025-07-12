@@ -14,7 +14,7 @@ function removeFileExtension(fileName: string){
 }
 
 export async function convert(ffmpeg: FFmpeg, action: Action) {
-    const { file, filename, from, to } = action;
+    const { file, filename, to } = action;
     const input = getFileExtension(filename);
     const output = removeFileExtension(filename) + "." + to;
     ffmpeg.writeFile(input, await fetchFile(file));
