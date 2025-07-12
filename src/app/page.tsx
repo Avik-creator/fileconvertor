@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Upload, File, Download, X, Settings, Play, CheckCircle, AlertCircle, Loader2, Image, Video, FileText } from "lucide-react";
+import { Upload, Download, X, Play, CheckCircle, AlertCircle, Loader2, Image, Video, FileText } from "lucide-react";
 import { convert } from "@/utils/convert";
 import { loadFFmpeg } from "@/utils/loadffmpeg";
 import { Action } from "@/lib/types";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 type FileType = 'image' | 'video' | 'all';
 
@@ -20,7 +21,7 @@ export default function Home() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [isFFmpegLoading, setIsFFmpegLoading] = useState(false);
-  const [ffmpeg, setFFmpeg] = useState<any>(null);
+  const [ffmpeg, setFFmpeg] = useState<FFmpeg | null>(null);
   const [selectedFileType, setSelectedFileType] = useState<FileType>('all');
 
   // Initialize FFmpeg on component mount
@@ -189,17 +190,6 @@ export default function Home() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileTypeIcon = (type: FileType) => {
-    switch (type) {
-      case 'image':
-        return Image;
-      case 'video':
-        return Video;
-      default:
-        return FileText;
-    }
   };
 
   const getFileTypeDescription = (type: FileType) => {
