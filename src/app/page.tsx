@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Upload, File, Download, X, Settings, Play, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, Download, X, Play, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { convert } from "@/utils/convert";
 import { loadFFmpeg } from "@/utils/loadffmpeg";
 import { Action } from "@/lib/types";
 import { getFileIcon, getFileColor } from "@/utils/fileIcons";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 export default function Home() {
   const [files, setFiles] = useState<Action[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [isFFmpegLoading, setIsFFmpegLoading] = useState(false);
-  const [ffmpeg, setFFmpeg] = useState<any>(null);
+  const [ffmpeg, setFFmpeg] = useState<FFmpeg | null>(null);
 
   // Initialize FFmpeg on component mount
   useEffect(() => {
