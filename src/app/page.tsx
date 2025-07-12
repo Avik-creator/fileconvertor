@@ -55,7 +55,7 @@ export default function Home() {
   const getSupportedFormats = (fileType: FileType) => {
     switch (fileType) {
       case 'image':
-        return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'svg'];
+        return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff'];
       case 'video':
         return ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', '3gp', 'mp3', 'wav', 'aac'];
       default:
@@ -327,9 +327,9 @@ export default function Home() {
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                       Drop images here or click to browse
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-6">
-                      JPG, PNG, GIF, WebP, and more
-                    </p>
+                                         <p className="text-gray-500 dark:text-gray-400 mb-6">
+                       JPG, PNG, GIF, WebP, BMP, TIFF
+                     </p>
                     <input
                       type="file"
                       multiple
