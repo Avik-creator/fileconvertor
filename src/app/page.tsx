@@ -1,19 +1,27 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Upload, Download, X, Play, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, File, Download, X, Settings, Play, CheckCircle, AlertCircle, Loader2, Image, Video, FileText } from "lucide-react";
 import { convert } from "@/utils/convert";
 import { loadFFmpeg } from "@/utils/loadffmpeg";
 import { Action } from "@/lib/types";
 import { getFileIcon, getFileColor } from "@/utils/fileIcons";
-import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+type FileType = 'image' | 'video' | 'all';
 
 export default function Home() {
   const [files, setFiles] = useState<Action[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [isFFmpegLoading, setIsFFmpegLoading] = useState(false);
-  const [ffmpeg, setFFmpeg] = useState<FFmpeg | null>(null);
+  const [ffmpeg, setFFmpeg] = useState<any>(null);
+  const [selectedFileType, setSelectedFileType] = useState<FileType>('all');
 
   // Initialize FFmpeg on component mount
   useEffect(() => {
@@ -31,6 +39,39 @@ export default function Home() {
 
     initFFmpeg();
   }, []);
+
+  const getAcceptedFileTypes = (fileType: FileType) => {
+    switch (fileType) {
+      case 'image':
+        return 'image/*';
+      case 'video':
+        return 'video/*';
+      default:
+        return 'image/*,video/*';
+    }
+  };
+
+  const getSupportedFormats = (fileType: FileType) => {
+    switch (fileType) {
+      case 'image':
+        return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'svg'];
+      case 'video':
+        return ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', '3gp', 'mp3', 'wav', 'aac'];
+      default:
+        return ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', '3gp', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp3', 'wav', 'aac'];
+    }
+  };
+
+  const getDefaultFormat = (fileType: FileType) => {
+    switch (fileType) {
+      case 'image':
+        return 'jpg';
+      case 'video':
+        return 'mp4';
+      default:
+        return 'mp4';
+    }
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -52,14 +93,14 @@ export default function Home() {
       filename: file.name,
       size: file.size,
       from: file.name.split('.').pop() || '',
-      to: 'mp4',
+      to: getDefaultFormat(selectedFileType),
       type: file.type,
       converting: false,
       converted: false
     }));
     
     setFiles(prev => [...prev, ...newFiles]);
-  }, []);
+  }, [selectedFileType]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -68,14 +109,14 @@ export default function Home() {
       filename: file.name,
       size: file.size,
       from: file.name.split('.').pop() || '',
-      to: 'mp4',
+      to: getDefaultFormat(selectedFileType),
       type: file.type,
       converting: false,
       converted: false
     }));
     
     setFiles(prev => [...prev, ...newFiles]);
-  }, []);
+  }, [selectedFileType]);
 
   const removeFile = useCallback((index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
@@ -127,7 +168,6 @@ export default function Home() {
 
   const convertAllFiles = useCallback(async () => {
     if (!ffmpeg) {
-      alert('FFmpeg not loaded. Please wait and try again.');
       return;
     }
 
@@ -151,7 +191,27 @@ export default function Home() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const supportedFormats = ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', '3gp', 'mp3', 'wav', 'aac', 'ogg', 'jpg', 'png', 'gif', 'webp'];
+  const getFileTypeIcon = (type: FileType) => {
+    switch (type) {
+      case 'image':
+        return Image;
+      case 'video':
+        return Video;
+      default:
+        return FileText;
+    }
+  };
+
+  const getFileTypeDescription = (type: FileType) => {
+    switch (type) {
+      case 'image':
+        return 'Convert images to different formats like JPG, PNG, WebP, and more';
+      case 'video':
+        return 'Convert videos to different formats like MP4, AVI, MOV, and extract audio';
+      default:
+        return 'Convert both images and videos to different formats';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -162,66 +222,179 @@ export default function Home() {
             File Converter
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Convert your files to different formats with ease. Support for video, audio, and image formats.
+            Convert your files to different formats with ease. Choose your file type and start converting.
           </p>
           
           {/* FFmpeg Loading Status */}
           {isFFmpegLoading && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
+            <Alert className="mt-4 max-w-md mx-auto">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading FFmpeg...</span>
-            </div>
+              <AlertDescription>
+                Loading FFmpeg... This may take a moment.
+              </AlertDescription>
+            </Alert>
           )}
           
           {/* Stats */}
           {files.length > 0 && (
-            <div className="mt-6 flex justify-center gap-8 text-sm text-gray-600 dark:text-gray-400">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{files.length}</span>
-                <span>Total Files</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{files.filter(f => f.converted).length}</span>
-                <span>Converted</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{files.filter(f => f.converting).length}</span>
-                <span>Converting</span>
-              </div>
+            <div className="mt-6 flex justify-center gap-4">
+              <Badge variant="secondary" className="text-sm">
+                {files.length} Total Files
+              </Badge>
+              <Badge variant="default" className="text-sm">
+                {files.filter(f => f.converted).length} Converted
+              </Badge>
+              <Badge variant="outline" className="text-sm">
+                {files.filter(f => f.converting).length} Converting
+              </Badge>
             </div>
           )}
         </div>
 
-        {/* Upload Area */}
+        {/* File Type Selection */}
         <div className="max-w-4xl mx-auto mb-8">
-          <div
-            className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 ${
-              isDragOver
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Drop files here or click to browse
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              Support for video, audio, and image files
-            </p>
-            <input
-              type="file"
-              multiple
-              onChange={handleFileSelect}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              accept="video/*,audio/*,image/*"
-            />
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-              Choose Files
-            </button>
-          </div>
+          <Tabs defaultValue="all" className="w-full" onValueChange={(value) => setSelectedFileType(value as FileType)}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                All Files
+              </TabsTrigger>
+              <TabsTrigger value="image" className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                Images
+              </TabsTrigger>
+              <TabsTrigger value="video" className="flex items-center gap-2">
+                <Video className="h-4 w-4" />
+                Videos
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    All File Types
+                  </CardTitle>
+                  <CardDescription>
+                    {getFileTypeDescription('all')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+                      isDragOver
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                      Drop files here or click to browse
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">
+                      Support for images and videos
+                    </p>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      accept={getAcceptedFileTypes('all')}
+                    />
+                    <Button>Choose Files</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="image" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Image className="h-5 w-5" />
+                    Image Converter
+                  </CardTitle>
+                  <CardDescription>
+                    {getFileTypeDescription('image')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+                      isDragOver
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <Image className="mx-auto h-12 w-12 text-purple-400 mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                      Drop images here or click to browse
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">
+                      JPG, PNG, GIF, WebP, and more
+                    </p>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      accept={getAcceptedFileTypes('image')}
+                    />
+                    <Button>Choose Images</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="video" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="h-5 w-5" />
+                    Video Converter
+                  </CardTitle>
+                  <CardDescription>
+                    {getFileTypeDescription('video')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+                      isDragOver
+                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <Video className="mx-auto h-12 w-12 text-red-400 mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                      Drop videos here or click to browse
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">
+                      MP4, AVI, MOV, and extract audio
+                    </p>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      accept={getAcceptedFileTypes('video')}
+                    />
+                    <Button>Choose Videos</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Files List */}
@@ -233,10 +406,10 @@ export default function Home() {
               </h2>
               <div className="flex gap-2">
                 {files.some(f => !f.converted && !f.converting) && (
-                  <button
+                  <Button
                     onClick={convertAllFiles}
                     disabled={isConverting || !ffmpeg}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
+                    className="flex items-center gap-2"
                   >
                     {isConverting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -244,114 +417,117 @@ export default function Home() {
                       <Play className="h-4 w-4" />
                     )}
                     Convert All
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  variant="destructive"
                   onClick={() => setFiles([])}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
+                  className="flex items-center gap-2"
                 >
                   <X className="h-4 w-4" />
                   Clear All
-                </button>
+                </Button>
               </div>
             </div>
 
             <div className="space-y-4">
               {files.map((file, index) => (
-                <div
-                  key={index}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      {(() => {
-                        const IconComponent = getFileIcon(file.filename);
-                        return <IconComponent className={`h-8 w-8 ${getFileColor(file.filename)}`} />;
-                      })()}
-                      <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">
-                          {file.filename}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {formatFileSize(file.size)}
-                        </p>
+                <Card key={index}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {(() => {
+                          const IconComponent = getFileIcon(file.filename);
+                          return <IconComponent className={`h-8 w-8 ${getFileColor(file.filename)}`} />;
+                        })()}
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-white">
+                            {file.filename}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {formatFileSize(file.size)}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mb-4">
+                      <div className="flex-1 w-full">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Convert to:
+                        </label>
+                        <Select value={file.to} onValueChange={(value) => updateFileFormat(index, value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getSupportedFormats(selectedFileType).map(format => (
+                              <SelectItem key={format} value={format}>
+                                {format.toUpperCase()}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-full sm:w-auto">
+                        {!file.converted && !file.converting && !file.error && (
+                          <Button
+                            onClick={() => convertFile(file, index)}
+                            disabled={!ffmpeg}
+                            className="w-full sm:w-auto flex items-center gap-2"
+                          >
+                            <Play className="h-4 w-4" />
+                            Convert
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeFile(index)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mb-4">
-                    <div className="flex-1 w-full">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Convert to:
-                      </label>
-                      <select
-                        value={file.to}
-                        onChange={(e) => updateFileFormat(index, e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        {supportedFormats.map(format => (
-                          <option key={format} value={format}>
-                            {format.toUpperCase()}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="w-full sm:w-auto">
-                      {!file.converted && !file.converting && !file.error && (
-                        <button
-                          onClick={() => convertFile(file, index)}
-                          disabled={!ffmpeg}
-                          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                        >
-                          <Play className="h-4 w-4" />
-                          Convert
-                        </button>
+                    {/* Status */}
+                    <div className="flex items-center gap-2 mb-4">
+                      {file.converting && (
+                        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Converting...
+                        </div>
+                      )}
+                      {file.converted && (
+                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                          <CheckCircle className="h-4 w-4" />
+                          Converted successfully
+                        </div>
+                      )}
+                      {file.error && (
+                        <Alert variant="destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>{file.error}</AlertDescription>
+                        </Alert>
                       )}
                     </div>
-                  </div>
 
-                  {/* Status */}
-                  <div className="flex items-center gap-2">
-                    {file.converting && (
-                      <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Converting...
-                      </div>
+                    {/* Download Link */}
+                    {file.converted && file.url && (
+                      <Button asChild className="w-full sm:w-auto">
+                        <a
+                          href={file.url}
+                          download={file.output}
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download Converted File
+                        </a>
+                      </Button>
                     )}
-                    {file.converted && (
-                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                        <CheckCircle className="h-4 w-4" />
-                        Converted successfully
-                      </div>
-                    )}
-                    {file.error && (
-                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                        <AlertCircle className="h-4 w-4" />
-                        {file.error}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Download Link */}
-                  {file.converted && file.url && (
-                    <div className="mt-4">
-                      <a
-                        href={file.url}
-                        download={file.output}
-                        className="inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors w-full sm:w-auto"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download Converted File
-                      </a>
-                    </div>
-                  )}
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
